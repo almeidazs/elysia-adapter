@@ -1,0 +1,70 @@
+import { BadRequestException } from '@nestjs/common';
+import { HttpArgumentsHost } from '@nestjs/common/interfaces';
+import type { ElysiaRequest } from '../../types';
+
+import { StorageFile } from '../storage';
+import { MultipartFile } from './file';
+import { UploadOptions } from './options';
+
+export type BodyData = Record<string, unknown>;
+
+export type TElysiaRequest = ElysiaRequest & {
+  files: Record<string, File[]>;
+  body: BodyData;
+  storageFile?: StorageFile;
+  storageFiles?: StorageFile[] | Record<string, StorageFile[]>;
+};
+
+/**
+ * Retrieves the multipart request from the given context.
+ * @param ctx - The HTTP arguments host.
+ * @returns The request object extended with TElysiaRequest.
+ */
+export const getMultipartRequest = (ctx: HttpArgumentsHost): TElysiaRequest => {
+  return ctx.getRequest<TElysiaRequest>();
+};
+
+/**
+ * Validates and extracts file parts from the request body.
+ * @param req - The request object containing multipart data.
+ * @param options - Upload options with file size limits.
+ * @returns The request body containing validated file parts.
+ * @throws {BadRequestException} If any file exceeds the allowed size limit.
+ */
+export const getParts = (
+  req: TElysiaRequest,
+  options: UploadOptions,
+): BodyData => {
+  const parts = req.body ?? {};
+
+  for (const [key, value] of Object.entries(parts)) {
+    // Handle array of files
+    if (Array.isArray(value) && value.every((item) => item instanceof File)) {
+      const maxSize = options?.limits?.fileSize;
+      if (maxSize) {
+        for (const file of value) {
+          if (file.size > maxSize) {
+            throw new BadRequestException(
+              `File "${key}" is too large. Maximum size is ${maxSize} bytes.`,
+            );
+          }
+        }
+      }
+      continue;
+    }
+
+    // Handle single file
+    if (value instanceof File) {
+      const maxSize = options?.limits?.fileSize;
+      if (maxSize && value.size > maxSize) {
+        throw new BadRequestException(
+          `File "${key}" is too large. Maximum size is ${maxSize} bytes.`,
+        );
+      }
+    }
+  }
+
+  return parts;
+};
+
+export type MultipartsIterator = AsyncIterableIterator<MultipartFile>;
