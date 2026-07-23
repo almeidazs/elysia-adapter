@@ -63,12 +63,12 @@
 		"@nestjs/core": "^11.1.27",
 		"@nestjs/graphql": "^13.4.2",
 		"@types/bun": "latest",
-		"@types/node": "^25.9.3",
-		"graphql": "^16.14.2",
+		"@types/node": "^26.1.1",
+		"graphql": "^17.0.2",
 		"graphql-ws": "^6.1.0",
 		"reflect-metadata": "^0.2.2",
 		"rxjs": "^7.8.2",
-		"typescript": "^6.0.3"
+		"typescript": "^7.0.2"
 	},
 	"peerDependencies": {
 		"@elysia/node": "^1.4.0",
