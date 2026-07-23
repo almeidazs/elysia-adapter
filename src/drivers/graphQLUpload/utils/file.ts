@@ -8,13 +8,13 @@
  * @returns Formatted size string (e.g., "1.5 MB")
  */
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
+	if (bytes === 0) return '0 Bytes';
 
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
+	const k = 1024;
+	const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+	const i = Math.floor(Math.log(bytes) / Math.log(k));
 
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+	return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
@@ -25,11 +25,11 @@ export function formatBytes(bytes: number): string {
  * @throws Error if file exceeds limit
  */
 export function validateFileSize(file: File, maxSize: number): void {
-  if (file.size > maxSize) {
-    throw new Error(
-      `File "${file.name}" (${formatBytes(file.size)}) exceeds maximum size of ${formatBytes(maxSize)}`,
-    );
-  }
+	if (file.size > maxSize) {
+		throw new Error(
+			`File "${file.name}" (${formatBytes(file.size)}) exceeds maximum size of ${formatBytes(maxSize)}`,
+		);
+	}
 }
 
 /**
@@ -38,8 +38,8 @@ export function validateFileSize(file: File, maxSize: number): void {
  * @returns File extension without dot, or empty string
  */
 export function getFileExtension(filename: string): string {
-  const ext = filename.lastIndexOf('.');
-  return ext === -1 ? '' : filename.slice(ext + 1);
+	const ext = filename.lastIndexOf('.');
+	return ext === -1 ? '' : filename.slice(ext + 1);
 }
 
 /**
@@ -49,18 +49,18 @@ export function getFileExtension(filename: string): string {
  * @returns true if file type is allowed
  */
 export function isAllowedFileType(file: File, allowedTypes: string[]): boolean {
-  return allowedTypes.some((type) => {
-    if (type.startsWith('.')) {
-      // Extension check
-      return getFileExtension(file.name).toLowerCase() === type.slice(1);
-    }
-    // MIME type check (supports wildcards like 'image/*')
-    if (type.endsWith('/*')) {
-      const prefix = type.slice(0, -2);
-      return file.type.startsWith(prefix);
-    }
-    return file.type === type;
-  });
+	return allowedTypes.some((type) => {
+		if (type.startsWith('.')) {
+			// Extension check
+			return getFileExtension(file.name).toLowerCase() === type.slice(1);
+		}
+		// MIME type check (supports wildcards like 'image/*')
+		if (type.endsWith('/*')) {
+			const prefix = type.slice(0, -2);
+			return file.type.startsWith(prefix);
+		}
+		return file.type === type;
+	});
 }
 
 /**
@@ -69,10 +69,10 @@ export function isAllowedFileType(file: File, allowedTypes: string[]): boolean {
  * @returns Safe filename without special characters
  */
 export function sanitizeFilename(filename: string): string {
-  return filename
-    .replace(/[^a-zA-Z0-9.-]/g, '_')
-    .replace(/_{2,}/g, '_')
-    .replace(/^\.+|\.+$/g, '');
+	return filename
+		.replace(/[^a-zA-Z0-9.-]/g, '_')
+		.replace(/_{2,}/g, '_')
+		.replace(/^\.+|\.+$/g, '');
 }
 
 /**
@@ -82,28 +82,28 @@ export function sanitizeFilename(filename: string): string {
  * @returns Unique filename
  */
 export function getUniqueFilename(
-  filename: string,
-  existingFilenames?: Set<string>,
+	filename: string,
+	existingFilenames?: Set<string>,
 ): string {
-  if (!existingFilenames?.has(filename)) {
-    return filename;
-  }
+	if (!existingFilenames?.has(filename)) {
+		return filename;
+	}
 
-  const name = filename.lastIndexOf('.');
-  if (name === -1) {
-    return `${filename}_1`;
-  }
+	const name = filename.lastIndexOf('.');
+	if (name === -1) {
+		return `${filename}_1`;
+	}
 
-  const baseName = filename.slice(0, name);
-  const ext = filename.slice(name);
+	const baseName = filename.slice(0, name);
+	const ext = filename.slice(name);
 
-  let counter = 1;
-  let newFilename = `${baseName}_${counter}${ext}`;
+	let counter = 1;
+	let newFilename = `${baseName}_${counter}${ext}`;
 
-  while (existingFilenames.has(newFilename)) {
-    counter++;
-    newFilename = `${baseName}_${counter}${ext}`;
-  }
+	while (existingFilenames.has(newFilename)) {
+		counter++;
+		newFilename = `${baseName}_${counter}${ext}`;
+	}
 
-  return newFilename;
+	return newFilename;
 }

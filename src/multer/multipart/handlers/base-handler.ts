@@ -1,228 +1,234 @@
 import { BadRequestException } from '@nestjs/common';
 
-import { StorageFile } from '../../storage/storage';
+import type { StorageFile } from '../../storage/storage';
 import { removeStorageFiles } from '../file';
 import { filterUpload } from '../filter';
-import { UploadOptions } from '../options';
-import { BodyData, TElysiaRequest, getParts } from '../request';
+import type { UploadOptions } from '../options';
+import { type BodyData, getParts, type TElysiaRequest } from '../request';
 
 export interface ProcessedFile {
-  file: StorageFile;
-  fieldName: string;
+	file: StorageFile;
+	fieldName: string;
 }
 
 export interface FileProcessResult {
-  body: BodyData;
-  remove: () => Promise<void>;
+	body: BodyData;
+	remove: () => Promise<void>;
 }
 
 export interface SingleFileResult extends FileProcessResult {
-  file?: StorageFile;
+	file?: StorageFile;
 }
 
 export interface MultipleFilesResult extends FileProcessResult {
-  files: StorageFile[];
+	files: StorageFile[];
 }
 
 export interface FileFieldsResult extends FileProcessResult {
-  files: Record<string, StorageFile[]>;
+	files: Record<string, StorageFile[]>;
 }
 
 export class FileHandler {
-  private readonly body: BodyData = {};
-  private readonly files: StorageFile[] = [];
-  private readonly filesByField: Record<string, StorageFile[]> = {};
-  private readonly incomingFileCounts = new Map<string, number>();
-  private fieldCount = 0;
-  private processed = false;
-  private cleanedUp = false;
+	private readonly body: BodyData = {};
+	private readonly files: StorageFile[] = [];
+	private readonly filesByField: Record<string, StorageFile[]> = {};
+	private readonly incomingFileCounts = new Map<string, number>();
+	private fieldCount = 0;
+	private processed = false;
+	private cleanedUp = false;
 
-  constructor(
-    private readonly req: TElysiaRequest,
-    private readonly options: UploadOptions,
-  ) {}
+	constructor(
+		private readonly req: TElysiaRequest,
+		private readonly options: UploadOptions,
+	) {}
 
-  /**
-   * Processes all parts in the multipart request.
-   */
-  async process(
-    processor: (fieldName: string, file: File) => Promise<void>,
-  ): Promise<void> {
-    if (this.processed) {
-      throw new Error('Request already processed');
-    }
+	/**
+	 * Processes all parts in the multipart request.
+	 */
+	async process(
+		processor: (fieldName: string, file: File) => Promise<void>,
+	): Promise<void> {
+		if (this.processed) {
+			throw new Error('Request already processed');
+		}
 
-    this.processed = true;
-    const parts = getParts(this.req, this.options);
+		this.processed = true;
+		const parts = getParts(this.req, this.options);
 
-    try {
-      for await (const [fieldName, part] of Object.entries(parts)) {
-        // Handle array of files (for multiple file uploads with same field name)
-        if (Array.isArray(part) && part.every((item) => item instanceof File)) {
-          for (const file of part) {
-            this.registerIncomingFile(fieldName);
-            await processor(fieldName, file);
-          }
-          continue;
-        }
+		try {
+			for await (const [fieldName, part] of Object.entries(parts)) {
+				// Handle array of files (for multiple file uploads with same field name)
+				if (Array.isArray(part) && part.every((item) => item instanceof File)) {
+					for (const file of part) {
+						this.registerIncomingFile(fieldName);
+						await processor(fieldName, file);
+					}
+					continue;
+				}
 
-        if (!(part instanceof File)) {
-          this.registerField();
-          this.body[fieldName] = part;
-          continue;
-        }
+				if (!(part instanceof File)) {
+					this.registerField();
+					this.body[fieldName] = part;
+					continue;
+				}
 
-        this.registerIncomingFile(fieldName);
-        await processor(fieldName, part);
-      }
-    } catch (error) {
-      await this.cleanup(true);
-      throw error;
-    }
-  }
+				this.registerIncomingFile(fieldName);
+				await processor(fieldName, part);
+			}
+		} catch (error) {
+			await this.cleanup(true);
+			throw error;
+		}
+	}
 
-  private registerIncomingFile(fieldName: string): void {
-    const count = this.incomingFileCounts.get(fieldName) ?? 0;
-    const maxCount = this.options.limits?.files;
+	private registerIncomingFile(fieldName: string): void {
+		const count = this.incomingFileCounts.get(fieldName) ?? 0;
+		const maxCount = this.options.limits?.files;
 
-    if (maxCount !== undefined) {
-      this.validateMaxCount(fieldName, count, maxCount);
-    }
+		if (maxCount !== undefined) {
+			this.validateMaxCount(fieldName, count, maxCount);
+		}
 
-    this.incomingFileCounts.set(fieldName, count + 1);
-  }
+		this.incomingFileCounts.set(fieldName, count + 1);
+	}
 
-  private registerField(): void {
-    const maxFields = this.options.limits?.fields;
-    if (maxFields !== undefined && this.fieldCount >= maxFields) {
-      throw new BadRequestException(`Request accepts max ${maxFields} fields.`);
-    }
+	private registerField(): void {
+		const maxFields = this.options.limits?.fields;
+		if (maxFields !== undefined && this.fieldCount >= maxFields) {
+			throw new BadRequestException(`Request accepts max ${maxFields} fields.`);
+		}
 
-    this.fieldCount++;
-  }
+		this.fieldCount++;
+	}
 
-  /**
-   * Handles a single file upload for a specific field.
-   */
-  async handleSingleFile(
-    fieldName: string,
-    file: File,
-  ): Promise<StorageFile | undefined> {
-    const storageFile = await this.options.storage!.handleFile(
-      file,
-      this.req,
-      fieldName,
-    );
+	/**
+	 * Handles a single file upload for a specific field.
+	 */
+	async handleSingleFile(
+		fieldName: string,
+		file: File,
+	): Promise<StorageFile | undefined> {
+		const { storage } = this.options;
+		if (!storage) {
+			throw new Error('Multipart storage is required to handle files');
+		}
 
-    if (await filterUpload(this.options, this.req, storageFile)) {
-      return storageFile;
-    }
+		const storageFile = await storage.handleFile(file, this.req, fieldName);
 
-    // If file was filtered out, remove it from storage
-    await this.options.storage!.removeFile(storageFile, true);
-    return undefined;
-  }
+		if (await filterUpload(this.options, this.req, storageFile)) {
+			return storageFile;
+		}
 
-  /**
-   * Validates that the field name matches the expected field name.
-   */
-  validateFieldName(fieldName: string, expectedFieldName: string): void {
-    if (fieldName !== expectedFieldName) {
-      throw new BadRequestException(
-        `Field "${fieldName}" doesn't accept file.`,
-      );
-    }
-  }
+		// If file was filtered out, remove it from storage
+		await storage.removeFile(storageFile, true);
+		return undefined;
+	}
 
-  /**
-   * Validates that only one file is uploaded for a field.
-   */
-  validateSingleFile(currentFile: StorageFile | undefined): void {
-    if (currentFile) {
-      throw new BadRequestException('Field accepts only one file.');
-    }
-  }
+	/**
+	 * Validates that the field name matches the expected field name.
+	 */
+	validateFieldName(fieldName: string, expectedFieldName: string): void {
+		if (fieldName !== expectedFieldName) {
+			throw new BadRequestException(
+				`Field "${fieldName}" doesn't accept file.`,
+			);
+		}
+	}
 
-  /**
-   * Validates the maximum number of files for a field.
-   */
-  validateMaxCount(
-    fieldName: string,
-    currentCount: number,
-    maxCount: number,
-  ): void {
-    if (currentCount >= maxCount) {
-      throw new BadRequestException(
-        `Field "${fieldName}" accepts max ${maxCount} files.`,
-      );
-    }
-  }
+	/**
+	 * Validates that only one file is uploaded for a field.
+	 */
+	validateSingleFile(currentFile: StorageFile | undefined): void {
+		if (currentFile) {
+			throw new BadRequestException('Field accepts only one file.');
+		}
+	}
 
-  /**
-   * Adds a file to the files collection.
-   */
-  addFile(fieldName: string, file: StorageFile): void {
-    this.files.push(file);
+	/**
+	 * Validates the maximum number of files for a field.
+	 */
+	validateMaxCount(
+		fieldName: string,
+		currentCount: number,
+		maxCount: number,
+	): void {
+		if (currentCount >= maxCount) {
+			throw new BadRequestException(
+				`Field "${fieldName}" accepts max ${maxCount} files.`,
+			);
+		}
+	}
 
-    if (!this.filesByField[fieldName]) {
-      this.filesByField[fieldName] = [];
-    }
-    this.filesByField[fieldName].push(file);
-  }
+	/**
+	 * Adds a file to the files collection.
+	 */
+	addFile(fieldName: string, file: StorageFile): void {
+		this.files.push(file);
 
-  /**
-   * Returns all processed files.
-   */
-  getFiles(): StorageFile[] {
-    return [...this.files];
-  }
+		if (!this.filesByField[fieldName]) {
+			this.filesByField[fieldName] = [];
+		}
+		this.filesByField[fieldName].push(file);
+	}
 
-  /**
-   * Returns files grouped by field name.
-   */
-  getFilesByField(): Record<string, StorageFile[]> {
-    return { ...this.filesByField };
-  }
+	/**
+	 * Returns all processed files.
+	 */
+	getFiles(): StorageFile[] {
+		return [...this.files];
+	}
 
-  /**
-   * Returns the request body.
-   */
-  getBody(): BodyData {
-    return { ...this.body };
-  }
+	/**
+	 * Returns files grouped by field name.
+	 */
+	getFilesByField(): Record<string, StorageFile[]> {
+		return { ...this.filesByField };
+	}
 
-  /**
-   * Cleans up all uploaded files.
-   * Prevents multiple cleanups and clears references to avoid memory leaks.
-   */
-  async cleanup(error?: boolean): Promise<void> {
-    if (this.cleanedUp) {
-      return;
-    }
+	/**
+	 * Returns the request body.
+	 */
+	getBody(): BodyData {
+		return { ...this.body };
+	}
 
-    this.cleanedUp = true;
+	/**
+	 * Cleans up all uploaded files.
+	 * Prevents multiple cleanups and clears references to avoid memory leaks.
+	 */
+	async cleanup(error?: boolean): Promise<void> {
+		if (this.cleanedUp) {
+			return;
+		}
 
-    await removeStorageFiles(this.options.storage!, this.files, error);
+		this.cleanedUp = true;
 
-    // Clear references to allow garbage collection
-    this.files.length = 0;
-    for (const key of Object.keys(this.filesByField)) {
-      delete this.filesByField[key];
-    }
-  }
+		const { storage } = this.options;
+		if (!storage) {
+			throw new Error('Multipart storage is required for cleanup');
+		}
 
-  /**
-   * Creates a remove function for cleanup that prevents multiple calls.
-   */
-  createRemoveFunction(): () => Promise<void> {
-    let called = false;
+		await removeStorageFiles(storage, this.files, error);
 
-    return async () => {
-      if (called) {
-        return;
-      }
-      called = true;
-      await this.cleanup();
-    };
-  }
+		// Clear references to allow garbage collection
+		this.files.length = 0;
+		for (const key of Object.keys(this.filesByField)) {
+			delete this.filesByField[key];
+		}
+	}
+
+	/**
+	 * Creates a remove function for cleanup that prevents multiple calls.
+	 */
+	createRemoveFunction(): () => Promise<void> {
+		let called = false;
+
+		return async () => {
+			if (called) {
+				return;
+			}
+			called = true;
+			await this.cleanup();
+		};
+	}
 }

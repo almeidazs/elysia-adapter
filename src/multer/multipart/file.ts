@@ -1,19 +1,19 @@
-import { Readable } from 'stream';
+import type { Readable } from 'node:stream';
 
-import { Storage, StorageFile } from '../storage';
+import type { Storage, StorageFile } from '../storage';
 
 export type MultipartFile = Omit<File[], 'file'> & {
-  value?: unknown;
-  file: Readable & { truncated?: boolean };
+	value?: unknown;
+	file: Readable & { truncated?: boolean };
 };
 
 export const removeStorageFiles = async (
-  storage: Storage,
-  files?: (StorageFile | undefined)[],
-  force?: boolean,
+	storage: Storage,
+	files?: (StorageFile | undefined)[],
+	force?: boolean,
 ) => {
-  if (files == null) return;
-  await Promise.all(
-    files.map((file) => file && storage.removeFile(file, force)),
-  );
+	if (files == null) return;
+	await Promise.all(
+		files.map((file) => file && storage.removeFile(file, force)),
+	);
 };

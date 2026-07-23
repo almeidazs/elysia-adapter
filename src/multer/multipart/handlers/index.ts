@@ -1,11 +1,14 @@
-export { UploadField, uploadFieldsToMap } from './file-fields';
-export { handleMultipartSingleFile } from './single-file';
-export { handleMultipartMultipleFiles } from './multiple-files';
-export { handleMultipartFileFields } from './file-fields';
 export { handleMultipartAnyFiles } from './any-files';
 export {
-  FileHandler,
-  SingleFileResult,
-  MultipleFilesResult,
-  FileFieldsResult,
+	FileFieldsResult,
+	FileHandler,
+	MultipleFilesResult,
+	SingleFileResult,
 } from './base-handler';
+export {
+	handleMultipartFileFields,
+	UploadField,
+	uploadFieldsToMap,
+} from './file-fields';
+export { handleMultipartMultipleFiles } from './multiple-files';
+export { handleMultipartSingleFile } from './single-file';
