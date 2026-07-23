@@ -241,10 +241,5 @@ Upload code is not imported by the HTTP or GraphQL entry points unless it is exp
 
 ```bash
 bun install
-bun run typecheck
-bun test
-bun run build
-bun pm pack --dry-run
+bun run verify
 ```
-
-`bun run build` emits ESM and declaration files to `dist`. The package export map intentionally exposes only `.`, `./graphql`, and `./uploads`.
