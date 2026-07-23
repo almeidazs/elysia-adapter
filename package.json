@@ -1,6 +1,6 @@
 {
 	"name": "elysia-nestjs",
-	"version": "0.1.0",
+	"version": "0.0.1",
 	"private": false,
 	"description": "NestJS HTTP adapter powered by Elysia",
 	"main": "./dist/index.js",
