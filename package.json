@@ -1,88 +1,97 @@
 {
-  "name": "elysia-nestjs",
-  "version": "0.1.0",
-  "description": "NestJS HTTP adapter powered by Elysia",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "type": "module",
-  "files": ["dist", "README.md"],
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./graphql": {
-      "types": "./dist/graphql.d.ts",
-      "import": "./dist/graphql.js"
-    },
-    "./uploads": {
-      "types": "./dist/uploads.d.ts",
-      "import": "./dist/uploads.js"
-    }
-  },
-  "sideEffects": false,
-  "scripts": {
-    "build": "bun build ./src/index.ts ./src/graphql.ts ./src/uploads.ts --outdir ./dist --target bun --packages external && tsc -p tsconfig.build.json",
-    "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "prepack": "bun run build"
-  },
-  "dependencies": {
-    "@elysiajs/cors": "^1.4.2",
-    "@elysiajs/static": "^1.4.10",
-    "elysia": "^1.4.28",
-    "path-to-regexp": "^8.4.2"
-  },
-  "devDependencies": {
-    "@nestjs/common": "^11.1.27",
-    "@nestjs/core": "^11.1.27",
-    "@apollo/server": "^5.5.1",
-    "@nestjs/apollo": "^13.4.2",
-    "@nestjs/graphql": "^13.4.2",
-    "@nestjs/platform-express": "^11.1.27",
-    "@nestjs/platform-fastify": "^11.1.27",
-    "@nestjs/swagger": "^11.4.4",
-    "@nestjs/testing": "^11.1.27",
-    "@types/bun": "latest",
-    "@types/node": "^25.9.3",
-    "class-transformer": "^0.5.1",
-    "class-validator": "^0.15.1",
-    "graphql": "^16.14.2",
-    "graphql-ws": "^6.1.0",
-    "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.2",
-    "typescript": "^6.0.3"
-  },
-  "peerDependencies": {
-    "@elysia/node": "^1.4.0",
-    "@apollo/server": "^5.0.0",
-    "@nestjs/apollo": "^13.0.0",
-    "@nestjs/common": "^11.0.0",
-    "@nestjs/core": "^11.0.0",
-    "@nestjs/graphql": "^13.0.0",
-    "graphql": "^16.0.0",
-    "graphql-ws": "^6.0.0",
-    "reflect-metadata": "^0.2.0",
-    "rxjs": "^7.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@elysia/node": {
-      "optional": true
-    },
-    "@apollo/server": {
-      "optional": true
-    },
-    "@nestjs/apollo": {
-      "optional": true
-    },
-    "@nestjs/graphql": {
-      "optional": true
-    },
-    "graphql": {
-      "optional": true
-    },
-    "graphql-ws": {
-      "optional": true
-    }
-  }
+	"name": "elysia-nestjs",
+	"version": "0.1.0",
+	"private": false,
+	"description": "NestJS HTTP adapter powered by Elysia",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"type": "module",
+	"files": [
+		"dist",
+		"README.md"
+	],
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		},
+		"./graphql": {
+			"types": "./dist/graphql.d.ts",
+			"import": "./dist/graphql.js"
+		},
+		"./uploads": {
+			"types": "./dist/uploads.d.ts",
+			"import": "./dist/uploads.js"
+		}
+	},
+	"sideEffects": false,
+	"scripts": {
+		"build": "bun build ./src/index.ts ./src/graphql.ts ./src/uploads.ts --outdir ./dist --target bun --packages external && tsc -p tsconfig.build.json",
+		"check": "bunx biome check .",
+		"fix": "bunx biome check . --write",
+		"format": "bunx biome format . --write",
+		"format:check": "bunx biome format .",
+		"lint": "bunx biome lint .",
+		"pack:check": "bun pm pack --dry-run",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test",
+		"test:node": "node test/node-smoke.mjs",
+		"test:all": "bun run test && bun run test:node",
+		"verify": "bun run check && bun run typecheck && bun run build && bun run test:all && bun run pack:check",
+		"prepack": "bun run build"
+	},
+	"dependencies": {
+		"@elysiajs/cors": "^1.4.2",
+		"@elysiajs/static": "^1.4.10",
+		"elysia": "^1.4.28",
+		"path-to-regexp": "^8.4.2"
+	},
+	"devDependencies": {
+		"@apollo/server": "^5.5.1",
+		"@biomejs/biome": "^2.4.15",
+		"@elysia/node": "^1.4.0",
+		"@nestjs/apollo": "^13.4.2",
+		"@nestjs/common": "^11.1.27",
+		"@nestjs/core": "^11.1.27",
+		"@nestjs/graphql": "^13.4.2",
+		"@types/bun": "latest",
+		"@types/node": "^25.9.3",
+		"graphql": "^16.14.2",
+		"graphql-ws": "^6.1.0",
+		"reflect-metadata": "^0.2.2",
+		"rxjs": "^7.8.2",
+		"typescript": "^6.0.3"
+	},
+	"peerDependencies": {
+		"@elysia/node": "^1.4.0",
+		"@apollo/server": "^5.0.0",
+		"@nestjs/apollo": "^13.0.0",
+		"@nestjs/common": "^11.0.0",
+		"@nestjs/core": "^11.0.0",
+		"@nestjs/graphql": "^13.0.0",
+		"graphql": "^16.0.0",
+		"graphql-ws": "^6.0.0",
+		"reflect-metadata": "^0.2.0",
+		"rxjs": "^7.0.0"
+	},
+	"peerDependenciesMeta": {
+		"@elysia/node": {
+			"optional": true
+		},
+		"@apollo/server": {
+			"optional": true
+		},
+		"@nestjs/apollo": {
+			"optional": true
+		},
+		"@nestjs/graphql": {
+			"optional": true
+		},
+		"graphql": {
+			"optional": true
+		},
+		"graphql-ws": {
+			"optional": true
+		}
+	}
 }
